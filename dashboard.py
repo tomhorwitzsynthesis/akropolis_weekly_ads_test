@@ -5,7 +5,7 @@ import altair as alt
 from datetime import datetime, timedelta
 import numpy as np
 
-st.set_page_config(page_title="Ad Intelligence – Last 7 Days", layout="wide")
+st.set_page_config(page_title="Ad Intelligence – Analysis Period", layout="wide")
 
 # ---- Groups with updated names ----
 AKROPOLIS_LOCATIONS = [
@@ -87,26 +87,32 @@ def load_data(start_date=None, end_date=None):
     # Convert reach to numeric
     df["reach"] = pd.to_numeric(df["reach"], errors="coerce").fillna(0)
     
-    # Use provided dates or calculate from current date
+    # Use provided dates or fall back to configured dates
     if start_date is None or end_date is None:
-        today = datetime.now().date()
-        last_14_days_start = today - timedelta(days=13)  # Include today
-        last_14_days_end = today
-        prev_7_days_start = today - timedelta(days=13)
-        prev_7_days_end = today - timedelta(days=7)
-        current_7_days_start = today - timedelta(days=6)
-        current_7_days_end = today
+        # Use configured analysis dates as fallback
+        last_14_days_start = config.ANALYSIS_START_DATE
+        last_14_days_end = config.ANALYSIS_END_DATE
     else:
         # Use provided dates
         last_14_days_start = start_date
         last_14_days_end = end_date
-        # Split 14-day period into two 7-day periods
-        current_7_days_start = end_date - timedelta(days=6)
-        current_7_days_end = end_date
-        prev_7_days_start = start_date
-        prev_7_days_end = start_date + timedelta(days=6)
     
-    # Filter for last 14 days (for charts)
+    # Calculate 7-day periods within the analysis period
+    total_days = (last_14_days_end - last_14_days_start).days + 1
+    if total_days >= 14:
+        # Split into two 7-day periods
+        current_7_days_start = last_14_days_end - timedelta(days=6)
+        current_7_days_end = last_14_days_end
+        prev_7_days_start = last_14_days_start
+        prev_7_days_end = last_14_days_start + timedelta(days=6)
+    else:
+        # If less than 14 days, use the full period for both
+        current_7_days_start = last_14_days_start
+        current_7_days_end = last_14_days_end
+        prev_7_days_start = last_14_days_start
+        prev_7_days_end = last_14_days_end
+    
+    # Filter for analysis period (for charts)
     df_14_days = df[
         (df["date"].dt.date >= last_14_days_start) & 
         (df["date"].dt.date <= last_14_days_end)
@@ -268,7 +274,7 @@ def load_summaries_for_period(period_idx):
 summaries = load_summaries_for_period(selected_period_idx) if available_periods else None
 
 # ---- UI controls ----
-st.title("Brand Intelligence – 14 Days Analysis")
+st.title("Brand Intelligence – Analysis Period")
 
 # Date range display
 st.caption(f"Analysis period: {start_date.strftime('%B %d')} - {end_date.strftime('%B %d, %Y')}")
@@ -430,7 +436,7 @@ brands_universe = set(ak_selected) | set(SUBSETS_WITH_RETAIL.get(subset_name, []
 df_f = df_14_days[df_14_days["brand"].isin(brands_universe)].copy()
 df_f_current = df_current[df_current["brand"].isin(brands_universe)].copy()
 
-st.subheader("Ad Intelligence (Last 14 Days)")
+st.subheader("Ad Intelligence (Analysis Period)")
 st.caption(
     f"{df_f['brand'].nunique()} brands · {df_f['ad_id'].nunique()} ads · {int(df_f['reach'].sum()):,} total reach"
 )

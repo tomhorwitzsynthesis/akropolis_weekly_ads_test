@@ -1,118 +1,78 @@
-# Ads Tracking Dashboard - Weekly Update Guide
+# Ads Tracking Dashboard
 
-This dashboard tracks advertising performance for Akropolis shopping centers and their competitors in Lithuania. It scrapes Facebook ads data, processes it with AI labeling, and generates weekly summaries for analysis.
+A system for tracking and analyzing Facebook ads from Lithuanian shopping centers and retail brands.
 
-## Weekly Data Update Process
+## Quick Start for Colleagues
 
-### Prerequisites
-
-1. **API Keys Required:**
-   - Apify API token (for Facebook ads scraping)
-   - OpenAI API key (for AI labeling and summaries)
-
-2. **Environment Setup:**
-   ```bash
-   # Install dependencies
-   pip install -r requirements.txt
-   
-   # Create .env file with your API keys
-   APIFY_TOKEN=your_apify_token_here
-   OPENAI_API_KEY=your_openai_api_key_here
-   ```
-
-### Weekly Update Steps
-
-#### 1. Run the Data Pipeline
-First, make simple copies of `/Akropolis_Ad_Updates/data/ads_master_file.xlsx` and `./Akropolis_Ad_Updates/data/summaries.xlsx` in case something goes wrong.
-
-Execute the main pipeline to scrape new ads data:
-
-```bash
-python pipeline.py
-```
-
-**What this does:**
-- Scrapes Facebook ads from 19 competitor pages using Apify
-- Processes and cleans the data
-- Applies AI labeling to categorize ads
-- Updates the master Excel file with new data
-- Generates weekly AI summaries for all brands
-
-**Configuration (in `config.py`):**
-- `DAYS_BACK = 14` - How many days back to scrape
-- `MAX_ADS = 50` - Max ads per page
-- `ENABLE_GPT_LABELING = True` - Enable AI categorization
-- `ENABLE_WEEKLY_SUMMARIES = True` - Generate AI summaries
-
-#### 2. Verify Data Update
-Check that new data was added:
-- Master file: `./Akropolis_Ad_Updates/data/ads_master_file.xlsx`
-- Summaries: `./Akropolis_Ad_Updates/data/summaries.xlsx`
-Especially check if the summaries have a new row
-
-#### 3. Run the Dashboard
-Launch the Streamlit dashboard:
-
+### 1. View the Dashboard
 ```bash
 streamlit run dashboard.py
 ```
-
-The dashboard shows:
+This opens an interactive dashboard in your browser showing:
 - 14-day performance analysis
 - Weekly comparison metrics (current vs previous week)
 - AI-generated summaries for each brand
 - Top performing ads and clusters
 - Interactive charts and filters
 
-## Double-Check in the Dashboard
-- See if the metrics, number of ads and reach, correspond between the summaries and the metric cards at the top.
+### 2. Understanding the Data
+The system tracks Facebook ads from 21 brands including:
+- **Akropolis locations**: Vilnius, Klaipėda, Šiauliai
+- **Major competitors**: PANORAMA, OZAS, Kauno Akropolis
+- **Smaller shopping centers**: BIG Vilnius, Vilnius Outlet, etc.
+- **Retail chains**: Maxima LT, Lidl Lietuva, Rimi Lietuva, IKI
 
-## Data Flow
+Interestingly enough, Kauno Akropolis is not part of the Akropolis franchise, so they are tracked separately.
 
-1. **Scraping** → Facebook ads from 19 competitor pages
-2. **Processing** → Clean, deduplicate, and transform data
-3. **AI Labeling** → Categorize ads using GPT-4
-4. **Storage** → Save to master Excel file
-5. **Summaries** → Generate weekly AI summaries
-6. **Dashboard** → Display interactive analysis
+### 3. Key Data Files
+- `Akropolis_Ad_Updates/data/ads_master_file.xlsx` - All Facebook ads with engagement metrics and AI categories
+- `Akropolis_Ad_Updates/data/summaries.xlsx` - Weekly AI-generated summaries for each brand
 
-## Troubleshooting
+## Weekly Data Updates
 
-### Common Issues
+### Manual Update 
+Fill in the correct dates (ANALYSIS_START_DATE and ANALYSIS_END_DATE) in the config.py file, which should be a 14-day period. 
+(For me it's always a bit counter-intuivite, but so 1/10 - 15/10 is not a 14 day period, it's actually 15 days, so it should be 1/10 - 14/10, just to be sure.)
 
-1. **API Rate Limits:**
-   - Reduce `MAX_WORKERS` in config.py
-   - Check Apify account usage limits
+It's a good idea to make copies of the output files in the Akropolis_Ad_Updates\data folder (ads_master_file and summaries) before you run the analysis, just to have a backup if something seems off.
 
-2. **Missing Data:**
-   - Verify API keys in .env file
-   - Check internet connection
-   - Ensure target Facebook pages are public
+If that's all done, run this command or simply go to the file in VS Code/Cursor and run it.
+```bash
+python pipeline.py
+```
 
-3. **Dashboard Not Loading:**
-   - Run `streamlit run dashboard.py` from project root
-   - Check that data files exist in correct locations
+This will:
+1. Scrape new Facebook ads from the last 14 days
+2. Apply AI labeling to categorize ads
+3. Merge with existing data (removing duplicates)
+4. Generate updated weekly summaries
 
-### Performance Tips
+You will see a lot of messages, as the process is parallelized, so multiple queries are run at the same time. Warnings or errors are usually okay in these logs, if there is an actual error with the code the scraping will just stop and show the error.
 
-- Run scraping during off-peak hours
-- Monitor API usage to avoid rate limits
-- Consider reducing `MAX_ADS` if scraping is slow
-- Use `ENABLE_GPT_LABELING = False` to skip AI processing for faster updates
+The process of scraping can take 5-10 minutes.
 
-## Weekly Checklist
+If you want to just run the scraping/labeling/summarization or any combination of these 3, you can enable or disable them separately in the config file as well. This can be useful when for example changing the summary prompt and not wanting to redo the whole scraping, or to make summaries of dates in the past.
 
-- [ ] Run `python pipeline.py` to update data
-- [ ] Verify new data in Excel files
-- [ ] Launch dashboard with `streamlit run dashboard.py`
-- [ ] Review AI summaries for insights
-- [ ] Check for any new competitors to add
-- [ ] Monitor API usage and costs
+If something goes wrong with the scraping on Apify's end, you can check out the runs here: https://console.apify.com/actors/JJghSZmShuco4j9gJ/runs 
 
-## Support
+## What You Need to Run Updates
 
-For issues or questions about the dashboard setup, check:
-- API key configuration in .env file
-- File paths in config.py for your deployment
-- Dependencies in requirements.txt
-- Console output for error messages
+### Required API Keys
+You need these in a `.env` file in the project folder:
+```
+APIFY_TOKEN=your_apify_token_here
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+## After the Updates
+
+After running all the analyses, it's good to check the ads_master_file to see if everything is okay. The format of the file might be looking a bit weird, as the way of scraping and analysis has changed throughout the development, so not all columns are filled in, but this is okay.
+
+Check:
+- If the startDateFormatted column has rows with the newly scraped dates
+- If the ad_summary, cluster_1, cluster_2 and cluster_3 are filled in for those
+- If the total_engagement column has values, it's normal that the comments and shares in those columns are 0
+- If the summaries.xlsx file has a new row with the dates from the config file, and check quickly if the brands actually have summaries or that it says for a majority "This week there were no new posts" or something similar
+- Run the dashboard and check if you can select the new dates and if the numbers in the summaries (number of ads and reach) correspond between the summaries and the metric cards at the top.
+
+

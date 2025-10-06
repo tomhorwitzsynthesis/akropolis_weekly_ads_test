@@ -2,8 +2,9 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import config
 
-st.set_page_config(page_title="Ad Intelligence – Akropolis Sep 1–7", layout="wide")
+st.set_page_config(page_title="Ad Intelligence – Analysis Period", layout="wide")
 
 # ---- Groups with updated names ----
 AKROPOLIS_LOCATIONS = [
@@ -38,8 +39,8 @@ SUBSETS_WITH_RETAIL = {
 }
 
 # ---- Load the provided Excel ----
-# Put your file name here; Streamlit will see it inside /mnt/data
-EXCEL_PATH = "ads_scraping_akropolis_ads_september.xlsx"
+# Use the configured master file path
+EXCEL_PATH = config.MASTER_XLSX
 
 @st.cache_data(show_spinner=False)
 def load_data():
@@ -61,9 +62,9 @@ def load_data():
           .dt.tz_convert(None)          # <-- key line
     )
 
-    # Now safe to compare with timezone-naive Timestamps
-    start = pd.Timestamp("2025-09-01")
-    end   = pd.Timestamp("2025-09-07")
+    # Filter by configured analysis period
+    start = pd.Timestamp(config.ANALYSIS_START_DATE)
+    end   = pd.Timestamp(config.ANALYSIS_END_DATE)
     df = df[(df["date"] >= start) & (df["date"] <= end)]
 
     df["reach"] = pd.to_numeric(df["reach"], errors="coerce").fillna(0)
@@ -73,7 +74,7 @@ def load_data():
 df = load_data()
 
 # ---- UI controls ----
-st.title("Brand Intelligence – Akropolis Focus (Ads)")
+st.title("Brand Intelligence – Analysis Period (Ads)")
 
 st.markdown("**Select Akropolis locations (always included):**")
 ak_cols = st.columns(4)
@@ -99,7 +100,7 @@ with right:
     brands_universe = set(ak_selected) | set(SUBSETS_WITH_RETAIL.get(subset_name, []))
     df_f = df[df["brand"].isin(brands_universe)].copy()
 
-    st.subheader("Ad Intelligence (Sep 1–7)")
+    st.subheader("Ad Intelligence (Analysis Period)")
     st.caption(
         f"{df_f['brand'].nunique()} brands · {df_f['ad_id'].nunique()} ads · {int(df_f['reach'].sum()):,} total reach"
     )
@@ -113,7 +114,7 @@ with right:
     )
 
     if daily.empty:
-        st.info("No ads found for these brands in Sep 1–7.")
+        st.info(f"No ads found for these brands in the analysis period ({config.ANALYSIS_START_DATE} to {config.ANALYSIS_END_DATE}).")
     else:
         chart = (
             alt.Chart(daily)

@@ -130,9 +130,17 @@ def process_card_extraction(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
-def filter_recent(df: pd.DataFrame, tz_name: str, days_back: int) -> pd.DataFrame:
-    tzinfo = tz.gettz(tz_name)
-    now = pd.Timestamp.now(tz=tzinfo).normalize()
-    keep_dates = {(now - pd.Timedelta(days=i)).date() for i in range(days_back)}
+def filter_recent(df: pd.DataFrame, start_date, end_date) -> pd.DataFrame:
+    """
+    Filter DataFrame to include only ads within the specified date range.
+    
+    Args:
+        df: DataFrame with ad data
+        start_date: Start date for filtering (date object)
+        end_date: End date for filtering (date object)
+    
+    Returns:
+        Filtered DataFrame
+    """
     dates = pd.to_datetime(df["startDateFormatted"], errors="coerce").dt.date
-    return df[dates.isin(keep_dates)].copy()
+    return df[(dates >= start_date) & (dates <= end_date)].copy()

@@ -40,7 +40,7 @@ RETAIL = ["Maxima LT", "Lidl Lietuva", "Rimi Lietuva", "IKI"]
 ALL_COMPETITORS = BIG_PLAYERS + SMALLER_PLAYERS + OTHER_CITIES + RETAIL
 
 def load_and_filter_data():
-    """Load data from master file and filter for last 14 days and previous 7 days"""
+    """Load data from master file and filter for the configured analysis period"""
     df = pd.read_excel(config.MASTER_XLSX)
     
     # Rename columns
@@ -56,32 +56,44 @@ def load_and_filter_data():
     df["date"] = pd.to_datetime(df["start_date"], errors="coerce")
     df["reach"] = pd.to_numeric(df["reach"], errors="coerce").fillna(0)
     
-    # Get date ranges
-    today = datetime.now().date()
-    last_14_days_start = today - timedelta(days=13)
-    last_14_days_end = today
-    prev_7_days_start = today - timedelta(days=13)
-    prev_7_days_end = today - timedelta(days=7)
-    current_7_days_start = today - timedelta(days=6)
-    current_7_days_end = today
+    # Use configured date ranges
+    analysis_start = config.ANALYSIS_START_DATE
+    analysis_end = config.ANALYSIS_END_DATE
     
-    # Filter data
+    # Calculate 7-day periods within the analysis period
+    total_days = (analysis_end - analysis_start).days + 1
+    if total_days >= 14:
+        # Split into two 7-day periods
+        current_7_days_start = analysis_end - timedelta(days=6)
+        current_7_days_end = analysis_end
+        prev_7_days_start = analysis_start
+        prev_7_days_end = analysis_start + timedelta(days=6)
+    else:
+        # If less than 14 days, use the full period for both
+        current_7_days_start = analysis_start
+        current_7_days_end = analysis_end
+        prev_7_days_start = analysis_start
+        prev_7_days_end = analysis_end
+    
+    # Filter data for the full analysis period
     df_14_days = df[
-        (df["date"].dt.date >= last_14_days_start) & 
-        (df["date"].dt.date <= last_14_days_end)
+        (df["date"].dt.date >= analysis_start) & 
+        (df["date"].dt.date <= analysis_end)
     ].copy()
     
+    # Filter data for current 7-day period
     df_current = df[
         (df["date"].dt.date >= current_7_days_start) & 
         (df["date"].dt.date <= current_7_days_end)
     ].copy()
     
+    # Filter data for previous 7-day period
     df_previous = df[
         (df["date"].dt.date >= prev_7_days_start) & 
         (df["date"].dt.date <= prev_7_days_end)
     ].copy()
     
-    return df_14_days, df_current, df_previous, last_14_days_start, last_14_days_end
+    return df_14_days, df_current, df_previous, analysis_start, analysis_end
 
 def get_brand_stats(df_current, df_previous, brand_name):
     """Get statistics for a specific brand"""
