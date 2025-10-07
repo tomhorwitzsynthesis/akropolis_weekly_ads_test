@@ -397,18 +397,35 @@ if summaries:
         # Filter summaries based on selected cluster, but always include Akropolis
         relevant_summaries = {}
         
-        # Always include Akropolis if available
+        # Always include Akropolis (combined) if available
         if "Akropolis" in all_summaries:
             relevant_summaries["Akropolis"] = all_summaries["Akropolis"]
         
+        # Add individual Akropolis cities if available
+        for akropolis_city in AKROPOLIS_LOCATIONS:
+            if akropolis_city in all_summaries:
+                relevant_summaries[akropolis_city] = all_summaries[akropolis_city]
+        
         # Add competitors from selected cluster
         for brand, summary in all_summaries.items():
-            if brand != "Akropolis" and brand in brands_universe:
+            if brand not in ["Akropolis"] + AKROPOLIS_LOCATIONS and brand in brands_universe:
                 relevant_summaries[brand] = summary
         
         if relevant_summaries:
-            # Create tabs with Akropolis at the end
-            tab_names = [brand for brand in relevant_summaries.keys() if brand != "Akropolis"]
+            # Create tabs with proper ordering: individual Akropolis cities first, then competitors, then combined Akropolis
+            tab_names = []
+            
+            # Add individual Akropolis cities first
+            for akropolis_city in AKROPOLIS_LOCATIONS:
+                if akropolis_city in relevant_summaries:
+                    tab_names.append(akropolis_city)
+            
+            # Add competitors
+            for brand in relevant_summaries.keys():
+                if brand not in ["Akropolis"] + AKROPOLIS_LOCATIONS:
+                    tab_names.append(brand)
+            
+            # Add combined Akropolis at the end
             if "Akropolis" in relevant_summaries:
                 tab_names.append("Akropolis")
             
@@ -564,41 +581,7 @@ else:
             for idx, row in top3_brand.iterrows():
                 st.markdown(create_ad_card(row["brand"], row["reach"], row["caption"], row["ad_id"]), unsafe_allow_html=True)
 
-# ---- 3) Top 3 clusters by reach ----
-st.markdown("#### Top 3 Clusters by Reach")
-
-# Filter for ads with cluster_1 data
-df_with_clusters = df_f[df_f["cluster_1"].notna() & (df_f["cluster_1"] != "")]
-
-if df_with_clusters.empty:
-    st.info("No cluster data available.")
-else:
-    cluster_rollup = (
-        df_with_clusters.groupby(["cluster_1", "brand"], as_index=False)
-        .agg(
-            ads_count=("ad_id", "nunique"),
-            total_reach=("reach", "sum")
-        )
-    )
-    
-    brands_with_clusters = sorted(cluster_rollup["brand"].unique())
-    cluster_tabs = st.tabs(["Overall"] + brands_with_clusters)
-    
-    def top3_clusters(d):
-        return d.sort_values("total_reach", ascending=False).head(3).reset_index(drop=True)
-    
-    with cluster_tabs[0]:
-        top3_clusters_overall = top3_clusters(cluster_rollup)
-        for idx, row in top3_clusters_overall.iterrows():
-            st.markdown(create_cluster_card(row["cluster_1"], row["ads_count"], row["total_reach"], 0), unsafe_allow_html=True)
-    
-    for i, b in enumerate(brands_with_clusters, start=1):
-        with cluster_tabs[i]:
-            top3_clusters_brand = top3_clusters(cluster_rollup[cluster_rollup["brand"] == b])
-            for idx, row in top3_clusters_brand.iterrows():
-                st.markdown(create_cluster_card(row["cluster_1"], row["ads_count"], row["total_reach"], 0), unsafe_allow_html=True)
-
-# ---- 4) Top 3 ad clusters comparison ----
+# ---- 3) Top 3 ad clusters comparison ----
 st.markdown("#### Top 3 Ad Clusters: This Week vs Previous Week")
 
 # Current week clusters
@@ -628,7 +611,7 @@ else:
                 ads_count=("ad_id", "nunique"),
                 total_reach=("reach", "sum")
             )
-            .sort_values("ads_count", ascending=False)
+            .sort_values("total_reach", ascending=False)
             .head(3)
         )
         

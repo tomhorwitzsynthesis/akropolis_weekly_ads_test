@@ -4,8 +4,8 @@ from datetime import datetime
 
 # === DATE CONFIGURATION ===
 # Define the analysis period for the dashboard and summaries
-ANALYSIS_START_DATE = datetime(2025, 9, 30).date()  # September 30, 2025
-ANALYSIS_END_DATE = datetime(2025, 10, 6).date()   # October 6, 2025
+ANALYSIS_START_DATE = datetime(2025, 9, 23).date()  # September 30, 2025
+ANALYSIS_END_DATE = datetime(2025, 10, 7).date()   # October 6, 2025
 
 # === DEPLOYMENT CONFIGURATION ===
 # Set to True when deploying to Streamlit Cloud, False for local development
@@ -40,11 +40,11 @@ else:
 
 # === GPT Labeling Configuration ===
 GPT_MAX_WORKERS = 20    # number of parallel GPT API calls
-ENABLE_GPT_LABELING = True  # Set to False to skip GPT labeling
+ENABLE_GPT_LABELING = False  # Set to False to skip GPT labeling
 ENABLE_WEEKLY_SUMMARIES = True  # Set to False to skip weekly summary generation
 
 # === Pipeline Configuration ===
-ENABLE_SCRAPING = True  # Set to False to skip scraping and only generate summaries from existing data
+ENABLE_SCRAPING = False  # Set to False to skip scraping and only generate summaries from existing data
 # When ENABLE_SCRAPING = False, the pipeline will:
 # - Skip the scraping process entirely
 # - Use existing data from the master file
